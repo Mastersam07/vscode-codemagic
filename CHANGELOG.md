@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.1.1
+
+- Docs
+
 ## 0.1.0
 
 - Add default values to steps

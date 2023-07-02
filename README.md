@@ -1,5 +1,7 @@
 # Codemagic Yaml Linter as an Extension
 
+https://vsmarketplacebadge.apphb.com/downloads/Mastersam.vscode-codemagic.svg
+
 Provides linting and intellisense support for codemagic yaml files.
 
 ## Features
@@ -8,13 +10,10 @@ Provides linting and intellisense support for codemagic yaml files.
 -  Yaml validation
 -  Hover support
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Demo
+<p align="center">
+    <img src="./assets/codemagic.gif">
+</p>
 
 ## Requirements
 
