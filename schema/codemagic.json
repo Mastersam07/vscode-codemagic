@@ -423,7 +423,7 @@
                 },
                 "flutter": {
                     "title": "Flutter version",
-                    "default": "latest",
+                    "default": "stable",
                     "description": "Define the channel name, version (e.g. v1.13.4) or 'fvm' if using Flutter Version Management.",
                     "errorMessage": "Incorrect type. Expected an integer, float, nonempty string or dictionary",
                     "anyOf": [
@@ -1301,6 +1301,7 @@
                 },
                 "instance_type": {
                     "title": "Instance type",
+                    "default": "mac_mini_m1",
                     "description": "Build machine type to use for the build.",
                     "allOf": [
                         {
