@@ -1,9 +1,17 @@
 # Change Log
 
-All notable changes to the "vscode-codemagic" extension will be documented in this file.
+## 0.1.0
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+- Add default values to steps
 
-## [Unreleased]
+## 0.0.2
 
-- Initial release
+- Stable version
+
+## 0.0.1
+
+- Hacky version.
+
+## 0.0.0
+
+- Project scaffold.
