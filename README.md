@@ -1,6 +1,13 @@
 # Codemagic Yaml Linter as an Extension
 
-https://vsmarketplacebadge.apphb.com/downloads/Mastersam.vscode-codemagic.svg
+<div align="center">
+
+[![Vs Code](https://img.shields.io/badge/Vs_Code-Marketplace-blue?color=Success)](https://marketplace.visualstudio.com/items?itemName=Mastersam.vscode-codemagic "Go to VS code Marketplace")
+[![Editor - Vs Code](https://img.shields.io/badge/Editor-VS_code-green?logo=visualstudiocode&logoColor=white&color=Success)](https://marketplace.visualstudio.com/items?itemName=Mastersam.vscode-codemagic "Go to VS code Marketplace")
+[![Config- Codemagic](https://img.shields.io/badge/Config-Codemagic-green?logo=codemagic&logoColor=white&color=Success)](http://codemagic.io/ "Go to Codemagic Home")
+[![contributions - welcome](https://img.shields.io/badge/Contributions-Welcome-white?color=Success)](/CONTRIBUTING.md "Go to contributions doc")
+
+</div>
 
 Provides linting and intellisense support for codemagic yaml files.
 
@@ -15,9 +22,12 @@ Provides linting and intellisense support for codemagic yaml files.
     <img src="./assets/codemagic.gif">
 </p>
 
-## Requirements
+> This extension is not affiliated with codemagic.io product.
+>
+> It is a 3rd party extension designed to provide linting and intellisense support for codemagic yaml files 
+>
+> If any issues, contact the [developer](https://github.com/mastersam07)
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
 
 ## Extension Settings
 
