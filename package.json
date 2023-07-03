@@ -2,7 +2,7 @@
   "name": "vscode-codemagic",
   "displayName": "Codemagic",
   "description": "YAML schema validation, linting and intellisense/auto-completion for Codemagic",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "Mastersam",
   "homepage": "https://github.com/Mastersam07/vscode-codemagic",
   "repository": {
@@ -13,7 +13,7 @@
     "url": "https://github.com/Mastersam07/vscode-codemagic/issues"
   },
   "engines": {
-    "vscode": "^1.79.0"
+    "vscode": "^1.50.0"
   },
   "license": "MIT",
   "categories": [
@@ -61,7 +61,7 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.79.0",
+    "@types/vscode": "^1.50.0",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "20.2.5",
