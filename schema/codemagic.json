@@ -16,6 +16,43 @@
         "workflows"
     ],
     "definitions": {
+        "SecureEnvironmentVariable": {
+            "title": "SecureEnvironmentVariable",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "filePath": {
+                    "title": "Filepath",
+                    "type": "string"
+                },
+                "type": {
+                    "title": "Type",
+                    "enum": [
+                        "secure_environment_variable"
+                    ],
+                    "type": "string"
+                },
+                "group": {
+                    "title": "Group",
+                    "type": "string"
+                },
+                "source": {
+                    "title": "Source",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name",
+                "filePath",
+                "type",
+                "group",
+                "source"
+            ],
+            "additionalProperties": false
+        },
         "InstanceType": {
             "title": "InstanceType",
             "description": "Build machine type to use for the build.",
@@ -23,12 +60,257 @@
                 "mac_mini",
                 "mac_mini_m1",
                 "mac_mini_m2",
+                "mac_mini_m4",
+                "mac_studio_m4_max",
                 "mac_pro",
                 "linux",
                 "linux_x2",
+                "linux_x4",
                 "windows_x2"
             ],
             "type": "string"
+        },
+        "TriggeringEvent": {
+            "title": "TriggeringEvent",
+            "description": "Currently supported events are push, pull_request, tag, pull_request_labeled.",
+            "enum": [
+                "push",
+                "pull_request",
+                "tag",
+                "pull_request_labeled",
+                "pull_request_labelled"
+            ],
+            "type": "string"
+        },
+        "BranchPattern": {
+            "title": "BranchPattern",
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "title": "Exact value or glob pattern to search for a branch",
+                    "description": "The pattern can also be passed with an environment variable.",
+                    "default": "*",
+                    "errorMessage": "Incorrect type. Expected an integer, float, boolean or nonempty string",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                "include": {
+                    "title": "Include the pattern",
+                    "description": "If set to false, the matching branches will not be watched for triggering events.",
+                    "default": true,
+                    "type": "boolean"
+                },
+                "source": {
+                    "title": "Specify whether the watched branch is the source or the target of the pull request",
+                    "description": "The variable is ignored for events other than pull_request.",
+                    "default": true,
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "TagPattern": {
+            "title": "TagPattern",
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "title": "Exact value or glob pattern to search for a tag",
+                    "description": "The pattern can also be passed with an environment variable.",
+                    "default": "*",
+                    "errorMessage": "Incorrect type. Expected an integer, float, boolean or nonempty string",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                "include": {
+                    "title": "Include the pattern",
+                    "description": "If set to false, the matching tags will not be watched for triggering events.",
+                    "default": true,
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Triggering": {
+            "title": "Triggering",
+            "type": "object",
+            "properties": {
+                "events": {
+                    "title": "List the events that trigger builds",
+                    "description": "Currently supported events are push, pull_request, tag, pull_request_labeled, pull_request_labelled.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/TriggeringEvent"
+                    }
+                },
+                "branch_patterns": {
+                    "title": "Branch patterns",
+                    "description": "A branch pattern can match the name of a particular branch, or you can use wildcard symbols to create a pattern that matches several branches. Note that for pull request builds you have to specify whether the watched branch is the source or the target of the pull request.",
+                    "errorMessage": "Incorrect type. Expected a not empty list of dictionaries",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/BranchPattern"
+                    }
+                },
+                "tag_patterns": {
+                    "title": "Tag patterns",
+                    "description": "A tag pattern can match the name of a particular tag, or you can use wildcard symbols to create a pattern that matches several tags.",
+                    "errorMessage": "Incorrect type. Expected a not empty list of dictionaries",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/TagPattern"
+                    }
+                },
+                "cancel_previous_builds": {
+                    "title": "Cancel previous builds",
+                    "description": "To avoid running builds on outdated commits, set cancel_previous_builds to true to automatically cancel all ongoing and queued builds triggered by webhooks on push or pull request commit when a more recent build has been triggered for the same branch.",
+                    "default": false,
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "InputType": {
+            "title": "InputType",
+            "description": "An enumeration.",
+            "enum": [
+                "boolean",
+                "choice",
+                "number",
+                "string"
+            ],
+            "type": "string"
+        },
+        "Input": {
+            "title": "Input",
+            "type": "object",
+            "properties": {
+                "description": {
+                    "title": "Input description",
+                    "description": "A description for this input parameter. Description is displayed in Codemagic when manually starting a build for this workflow and user is prompted to provide values for the inputs.",
+                    "minLength": 1,
+                    "type": "string"
+                },
+                "type": {
+                    "title": "Input type",
+                    "description": "Defines the data type of the input parameter. This must be one of: `boolean`, `choice`, `number` or `string`. By default, `string` is assumed. Input values for the `choice` type are resolved to strings and must be defined in the `options` field. Values for inputs with types `boolean` and `number` are persisted as booleans and integers or floating point numbers respectively, instead of converting them to strings as long as they are not used directly in string interpolations.",
+                    "default": "string",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/InputType"
+                        }
+                    ]
+                },
+                "options": {
+                    "title": "Choice options",
+                    "description": "Provide a list of values as options for the `choice` input. Required if type is `choice` and prohibited otherwise.",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "boolean"
+                            }
+                        ]
+                    }
+                },
+                "default": {
+                    "title": "Default value for non-required input",
+                    "description": "Provide a default value for the input parameter. Must be specified if the input is not required and prohibited otherwise.",
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "description"
+            ],
+            "additionalProperties": false
         },
         "DistributionType": {
             "title": "DistributionType",
@@ -48,8 +330,24 @@
                 "profile": {
                     "title": "Profile reference",
                     "description": "Profile reference found in Team settings -> Code signing identities",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "environment_variable": {
                     "title": "Environment variable",
@@ -70,8 +368,24 @@
                 "certificate": {
                     "title": "Certificate reference",
                     "description": "Certificate reference found in Team settings -> Code signing identities",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "environment_variable": {
                     "title": "Environment variable",
@@ -93,7 +407,11 @@
                     "title": "Distribution type",
                     "description": "Type of certificates and profiles to fetch from Code signing identities",
                     "errorMessage": "Incorrect distribution type. Expected one of ad_hoc, app_store, development, enterprise",
-                    "allOf": [
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
                         {
                             "$ref": "#/definitions/DistributionType"
                         }
@@ -102,8 +420,24 @@
                 "bundle_identifier": {
                     "title": "Bundle identifier",
                     "description": "Bundle identifier of certificates and profiles to fetch from Code signing identities",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "provisioning_profiles": {
                     "title": "Provisioning profiles",
@@ -113,6 +447,18 @@
                     "type": "array",
                     "items": {
                         "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                            },
+                            {
+                                "$ref": "#/definitions/SecureEnvironmentVariable"
+                            },
                             {
                                 "type": "string",
                                 "minLength": 1
@@ -133,6 +479,18 @@
                         "anyOf": [
                             {
                                 "type": "string",
+                                "minLength": 1,
+                                "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                            },
+                            {
+                                "$ref": "#/definitions/SecureEnvironmentVariable"
+                            },
+                            {
+                                "type": "string",
                                 "minLength": 1
                             },
                             {
@@ -151,8 +509,24 @@
                 "keystore": {
                     "title": "Keystore reference",
                     "description": "Keystore reference found in Team settings -> Code signing identities",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "keystore_environment_variable": {
                     "title": "Keystore environment variable",
@@ -207,8 +581,24 @@
                 "flavor": {
                     "title": "Flutter flavor",
                     "description": "The name of the flavor to use when using FVM.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 }
             },
             "required": [
@@ -295,6 +685,18 @@
                             },
                             {
                                 "type": "string",
+                                "minLength": 1,
+                                "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                            },
+                            {
+                                "$ref": "#/definitions/SecureEnvironmentVariable"
+                            },
+                            {
+                                "type": "string",
                                 "minLength": 1
                             }
                         ]
@@ -306,6 +708,47 @@
                     "default": "latest",
                     "errorMessage": "Incorrect type. Expected an integer, float or nonempty string",
                     "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "number"
+                        }
+                    ]
+                },
+                "ubuntu": {
+                    "title": "Ubuntu",
+                    "description": "Define the Ubuntu version to use for the build.",
+                    "errorMessage": "Incorrect type. Expected an integer, float or nonempty string",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
                         {
                             "type": "string",
                             "minLength": 1
@@ -326,6 +769,18 @@
                     "anyOf": [
                         {
                             "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
                             "minLength": 1
                         },
                         {
@@ -341,6 +796,18 @@
                     "description": "Define default, latest, current, lts, carbon (or another stream), nightly or version (e.g. 12.4.0).",
                     "errorMessage": "Incorrect type. Expected an integer, float or nonempty string",
                     "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
                         {
                             "type": "string",
                             "minLength": 1
@@ -360,6 +827,18 @@
                     "anyOf": [
                         {
                             "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
                             "minLength": 1
                         },
                         {
@@ -375,6 +854,18 @@
                     "description": "Define default or revision (e.g. r19c).",
                     "errorMessage": "Incorrect type. Expected an integer, float or nonempty string",
                     "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
                         {
                             "type": "string",
                             "minLength": 1
@@ -394,6 +885,18 @@
                     "anyOf": [
                         {
                             "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
                             "minLength": 1
                         },
                         {
@@ -411,6 +914,18 @@
                     "anyOf": [
                         {
                             "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
                             "minLength": 1
                         },
                         {
@@ -423,10 +938,21 @@
                 },
                 "flutter": {
                     "title": "Flutter version",
-                    "default": "stable",
                     "description": "Define the channel name, version (e.g. v1.13.4) or 'fvm' if using Flutter Version Management.",
                     "errorMessage": "Incorrect type. Expected an integer, float, nonempty string or dictionary",
                     "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
                         {
                             "type": "string",
                             "minLength": 1
@@ -446,8 +972,24 @@
                     "title": "Unity version",
                     "description": "Define exact version (e.g. 2020.3.15f2).",
                     "errorMessage": "Incorrect type. Expected a nonempty string",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 }
             },
             "additionalProperties": false
@@ -459,8 +1001,24 @@
                 "app_store_connect": {
                     "title": "Use info from Apple Developer Portal integration",
                     "description": "Specify the name of the App Store Connect API key to be used from team or personal integrations to authenticate actions for code signing and publishing.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 }
             },
             "additionalProperties": false
@@ -478,131 +1036,6 @@
                         "type": "string",
                         "minLength": 1
                     }
-                }
-            },
-            "additionalProperties": false
-        },
-        "TriggeringEvent": {
-            "title": "TriggeringEvent",
-            "description": "Currently supported events are push, pull_request.",
-            "enum": [
-                "push",
-                "pull_request",
-                "tag"
-            ],
-            "type": "string"
-        },
-        "BranchPattern": {
-            "title": "BranchPattern",
-            "type": "object",
-            "properties": {
-                "pattern": {
-                    "title": "Exact value or glob pattern to search for a branch",
-                    "description": "The pattern can also be passed with an environment variable.",
-                    "default": "*",
-                    "errorMessage": "Incorrect type. Expected an integer, float, boolean or nonempty string",
-                    "anyOf": [
-                        {
-                            "type": "string",
-                            "minLength": 1
-                        },
-                        {
-                            "type": "integer"
-                        },
-                        {
-                            "type": "number"
-                        },
-                        {
-                            "type": "boolean"
-                        }
-                    ]
-                },
-                "include": {
-                    "title": "Include the pattern",
-                    "description": "If set to false, the matching branches will not be watched for triggering events.",
-                    "default": true,
-                    "type": "boolean"
-                },
-                "source": {
-                    "title": "Specify whether the watched branch is the source or the target of the pull request",
-                    "description": "The variable is ignored for events other than pull_request.",
-                    "default": true,
-                    "type": "boolean"
-                }
-            },
-            "additionalProperties": false
-        },
-        "TagPattern": {
-            "title": "TagPattern",
-            "type": "object",
-            "properties": {
-                "pattern": {
-                    "title": "Exact value or glob pattern to search for a tag",
-                    "description": "The pattern can also be passed with an environment variable.",
-                    "default": "*",
-                    "errorMessage": "Incorrect type. Expected an integer, float, boolean or nonempty string",
-                    "anyOf": [
-                        {
-                            "type": "string",
-                            "minLength": 1
-                        },
-                        {
-                            "type": "integer"
-                        },
-                        {
-                            "type": "number"
-                        },
-                        {
-                            "type": "boolean"
-                        }
-                    ]
-                },
-                "include": {
-                    "title": "Include the pattern",
-                    "description": "If set to false, the matching tags will not be watched for triggering events.",
-                    "default": true,
-                    "type": "boolean"
-                }
-            },
-            "additionalProperties": false
-        },
-        "Triggering": {
-            "title": "Triggering",
-            "type": "object",
-            "properties": {
-                "events": {
-                    "title": "List the events that trigger builds",
-                    "description": "Currently supported events are push, pull_request, tag.",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/TriggeringEvent"
-                    }
-                },
-                "branch_patterns": {
-                    "title": "Branch patterns",
-                    "description": "A branch pattern can match the name of a particular branch, or you can use wildcard symbols to create a pattern that matches several branches. Note that for pull request builds you have to specify whether the watched branch is the source or the target of the pull request.",
-                    "errorMessage": "Incorrect type. Expected a not empty list of dictionaries",
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/BranchPattern"
-                    }
-                },
-                "tag_patterns": {
-                    "title": "Tag patterns",
-                    "description": "A tag pattern can match the name of a particular tag, or you can use wildcard symbols to create a pattern that matches several tags.",
-                    "errorMessage": "Incorrect type. Expected a not empty list of dictionaries",
-                    "minItems": 1,
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/TagPattern"
-                    }
-                },
-                "cancel_previous_builds": {
-                    "title": "Cancel previous builds",
-                    "description": "To avoid running builds on outdated commits, set cancel_previous_builds to true to automatically cancel all ongoing and queued builds triggered by webhooks on push or pull request commit when a more recent build has been triggered for the same branch.",
-                    "default": false,
-                    "type": "boolean"
                 }
             },
             "additionalProperties": false
@@ -672,7 +1105,20 @@
                 "condition": {
                     "title": "Condition",
                     "description": "Check if condition evaluates to true before proceeding with building workflow or script.",
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 }
             },
             "additionalProperties": false
@@ -685,8 +1131,8 @@
             ],
             "type": "string"
         },
-        "NamedScript": {
-            "title": "NamedScript",
+        "PreCloneScript": {
+            "title": "PreCloneScript",
             "type": "object",
             "properties": {
                 "script": {
@@ -715,22 +1161,33 @@
                         }
                     ]
                 },
-                "test_report": {
-                    "title": "Exact name or glob pattern matching the test result file location",
-                    "description": "You can display test results visually in the build overview. The value can be an absolute path, or a path relative to $CM_BUILD_DIR (in this case the patterns will be searched recursively). Supported test report formats are Junit XML and .JSON for Flutter's --machine report.",
-                    "minLength": 1,
-                    "type": "string"
-                },
                 "ignore_failure": {
                     "title": "Ignore script failure",
                     "description": "If set to true, the workflow will continue to run even if the script fails.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "on_failure": {
                     "title": "The action to take on script failure",
                     "description": "The only supported action is to proceed directly to publishing.",
-                    "allOf": [
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
                         {
                             "$ref": "#/definitions/ScriptOnFailure"
                         }
@@ -757,6 +1214,95 @@
             ],
             "additionalProperties": false
         },
+        "BuildScript": {
+            "title": "BuildScript",
+            "type": "object",
+            "properties": {
+                "script": {
+                    "title": "Script to be executed",
+                    "description": "By default the script will be run in the Bash shell. You can run the script in other languages by defining a shebang line in the beginning.",
+                    "minLength": 1,
+                    "type": "string"
+                },
+                "name": {
+                    "title": "Script name",
+                    "description": "A descriptive script name can be provided to be shown in the UI. If not passed, the first line of your script will be shown in the UI for the script block.",
+                    "errorMessage": "Incorrect type. Expected an integer, float, boolean or nonempty string",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "boolean"
+                        }
+                    ]
+                },
+                "ignore_failure": {
+                    "title": "Ignore script failure",
+                    "description": "If set to true, the workflow will continue to run even if the script fails.",
+                    "default": false,
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                },
+                "on_failure": {
+                    "title": "The action to take on script failure",
+                    "description": "The only supported action is to proceed directly to publishing.",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/ScriptOnFailure"
+                        }
+                    ]
+                },
+                "when": {
+                    "title": "Conditions for script to continue",
+                    "description": "All conditions below should be met in order for script to continue.",
+                    "errorMessage": "Incorrect type. Expected a dictionary",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/When"
+                        }
+                    ]
+                },
+                "working_directory": {
+                    "title": "Script working directory",
+                    "description": "Specify directory where this script will be executed. It overrides global workflow working directory.",
+                    "type": "string"
+                },
+                "test_report": {
+                    "title": "Exact name or glob pattern matching the test result file location",
+                    "description": "You can display test results visually in the build overview. The value can be an absolute path, or a path relative to $CM_BUILD_DIR (in this case the patterns will be searched recursively). Supported test report formats are Junit XML and .JSON for Flutter's --machine report.",
+                    "minLength": 1,
+                    "type": "string"
+                }
+            },
+            "required": [
+                "script"
+            ],
+            "additionalProperties": false
+        },
         "PublisherNotification": {
             "title": "PublisherNotification",
             "type": "object",
@@ -765,13 +1311,39 @@
                     "title": "Publish on success",
                     "description": "Set to false to not receive a notification when a build succeeds.",
                     "default": true,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "failure": {
                     "title": "Publish on failure",
                     "description": "Set to false to not receive a notification when a build fails.",
                     "default": true,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 }
             },
             "additionalProperties": false
@@ -794,7 +1366,14 @@
                             {
                                 "type": "string",
                                 "minLength": 1,
-                                "pattern": "^\\$\\{?([^:}]+).*\\}?$"
+                                "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                            },
+                            {
+                                "$ref": "#/definitions/SecureEnvironmentVariable"
                             }
                         ]
                     }
@@ -822,14 +1401,43 @@
                 "channel": {
                     "title": "Specify the Slack channel for publishing",
                     "description": "To allow publishing to private channels, invite the Codemagic Slack app to the channels by writing @codemagic in the channel.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "notify_on_build_start": {
                     "title": "Send a Slack notification when a build starts",
                     "description": "When you set notify_on_build_start to true, the channel will be notified when a build starts.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "notify": {
                     "title": "Slack notification settings",
@@ -872,7 +1480,11 @@
                 "auth": {
                     "title": "App Store Connect authentication method",
                     "description": "Accepted value: integration. When defined, the API key info inherited from integrations is used for authenticating with App Store Connect. If you omit this key-value pair, you must define API key, key identifier and issuer identifier explicitly.",
-                    "allOf": [
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
                         {
                             "$ref": "#/definitions/AppStoreConnectAuth"
                         }
@@ -893,7 +1505,14 @@
                         {
                             "type": "string",
                             "minLength": 1,
-                            "pattern": "^\\$\\{?([^:}]+).*\\}?$"
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
                         }
                     ]
                 },
@@ -912,7 +1531,14 @@
                         {
                             "type": "string",
                             "minLength": 1,
-                            "pattern": "^\\$\\{?([^:}]+).*\\}?$"
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
                         }
                     ]
                 },
@@ -931,7 +1557,14 @@
                         {
                             "type": "string",
                             "minLength": 1,
-                            "pattern": "^\\$\\{?([^:}]+).*\\}?$"
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
                         }
                     ]
                 },
@@ -951,7 +1584,14 @@
                         {
                             "type": "string",
                             "minLength": 1,
-                            "pattern": "^\\$\\{?([^:}]+).*\\}?$"
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
                         }
                     ]
                 },
@@ -972,7 +1612,14 @@
                         {
                             "type": "string",
                             "minLength": 1,
-                            "pattern": "^\\$\\{?([^:}]+).*\\}?$"
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
                         }
                     ]
                 },
@@ -980,39 +1627,108 @@
                     "title": "Submit uploaded application package to Testflight",
                     "description": "Submit published build to Testflight. Requires authentication using App Store Connect API key.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "expire_build_submitted_for_review": {
                     "title": "Expire previous build submitted to review before submitting package to Testflight",
                     "description": "Expire previously submitted build that is in review before submitting published build to Testflight. Requires authentication using App Store Connect API key.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "beta_groups": {
                     "title": "Release uploaded application package to the groups of beta testers",
                     "description": "Published build will be made available to the specified Beta groups in App Store Connect. TestFlight submission is required in order to release builds to the groups of beta testers.",
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                            }
+                        ]
                     }
                 },
                 "submit_to_app_store": {
                     "title": "Submit uploaded application package to App Store review",
                     "description": "Submit published build to App Store review. Requires authentication using App Store Connect API key.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "cancel_previous_submissions": {
                     "title": "Cancel previous submissions before submitting application package to App Store review",
                     "description": "Cancel previous submissions before submitting application package to App Store review. Requires authentication using App Store Connect API key.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "release_type": {
                     "title": "Specify when to release the app after App Store review",
                     "description": "Choose when to release the app. You can either manually release the app at a later date on the App Store Connect website, or the app version can be automatically released right after it has been approved by App Review.",
                     "errorMessage": "Incorrect release type. Expected one of MANUAL, AFTER_APPROVAL, SCHEDULED",
-                    "allOf": [
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
                         {
                             "$ref": "#/definitions/AppStoreReleaseType"
                         }
@@ -1022,8 +1738,16 @@
                     "title": "Specify earliest return date for scheduled release type",
                     "description": "Specify earliest return date for scheduled release type. Timezone aware ISO8601 timestamp, for example 2021-11-10T14:55:41+00:00.",
                     "errorMessage": "Not a valid timezone aware ISO8601 timestamp",
-                    "type": "string",
-                    "format": "date-time"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "copyright": {
                     "title": "The name of the person or entity that owns the exclusive rights to your app",
@@ -1036,11 +1760,101 @@
                         {
                             "type": "string",
                             "minLength": 1,
-                            "pattern": "^\\$\\{?([^:}]+).*\\}?$"
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                },
+                "phased_release": {
+                    "title": "Specify if App Store version update should be released in phases",
+                    "description": "Whether or not to release an App Store version update in phases. With this option turned on, your version update will be released over a 7-day period to a percentage of your users (selected at random by their Apple ID) with automatic updates turned on. Learn more from https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases. If not specified, then the default phased release configuration for the App Store version is reused.",
+                    "default": false,
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
                         }
                     ]
                 }
             },
+            "additionalProperties": false
+        },
+        "ReleasePromotion": {
+            "title": "ReleasePromotion",
+            "type": "object",
+            "properties": {
+                "track": {
+                    "title": "Name of the track to which release is promoted",
+                    "description": "The track to promote the release to. Used in conjunction with the 'track` argument.",
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                },
+                "rollout_fraction": {
+                    "title": "Rollout fraction",
+                    "description": "The promoted release in the target track will be staged, allowing users to choose which fraction of the testers or users get access to the application. To release to everyone, omit the rollout_fraction field.",
+                    "anyOf": [
+                        {
+                            "type": "number",
+                            "exclusiveMinimum": 0.0,
+                            "exclusiveMaximum": 1.0
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                },
+                "promote_as_draft": {
+                    "title": "Promote the release with draft status",
+                    "description": "Indicates that the promoted release will be in the draft status in the target track.",
+                    "default": false,
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "track"
+            ],
             "additionalProperties": false
         },
         "GooglePlay": {
@@ -1050,40 +1864,156 @@
                 "credentials": {
                     "title": "Service account credentials",
                     "description": "The encrypted JSON key file or the encrypted contents of the JSON key file. The value can also be passed with an environment variable.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
+                },
+                "release_name": {
+                    "title": "The release name",
+                    "description": "Not required to be unique. If not set, the name is generated from the APK's versionName.",
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "track": {
                     "title": "Name of the track",
                     "description": "Codemagic enables you to automatically publish your app to Google Play.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "in_app_update_priority": {
                     "title": "Priority of the release",
                     "description": "If your application supports in-app updates, set the release priority by specifying an integer in range [0, 5]. Otherwise, in_app_update_priority can be omitted.",
-                    "minimum": 0,
-                    "maximum": 5,
-                    "type": "integer"
+                    "anyOf": [
+                        {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 5
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "rollout_fraction": {
                     "title": "Rollout fraction",
                     "description": "Codemagic supports staged releases, allowing users to choose which fraction of the testers or users get access to the application. To release to everyone, omit the rollout_fraction field.",
-                    "exclusiveMinimum": 0,
-                    "exclusiveMaximum": 1,
-                    "type": "number"
+                    "anyOf": [
+                        {
+                            "type": "number",
+                            "exclusiveMinimum": 0.0,
+                            "exclusiveMaximum": 1.0
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "changes_not_sent_for_review": {
                     "title": "Do not send changes for review",
                     "description": "Indicates that the changes in this edit will not be reviewed until they are explicitly sent for review from the Google Play Console UI.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
                 },
                 "submit_as_draft": {
                     "title": "Create the release in draft status",
                     "description": "Indicates that the artifacts generated in the build will be uploaded to Google Play as a draft release.",
                     "default": false,
-                    "type": "boolean"
+                    "anyOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                },
+                "release_promotion": {
+                    "title": "Release promotion",
+                    "description": "Additionally, promote the uploaded release to another track",
+                    "errorMessage": "Incorrect type. Expected a dictionary",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/ReleasePromotion"
+                        }
+                    ]
                 }
             },
             "required": [
@@ -1108,8 +2038,24 @@
                 "app_id": {
                     "title": "Firebase application id",
                     "description": "Firebase application id found in Firebase application settings.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "groups": {
                     "title": "Groups to be distributed to",
@@ -1117,15 +2063,31 @@
                     "errorMessage": "Incorrect type. Expected a list of nonempty strings",
                     "type": "array",
                     "items": {
-                        "type": "string",
-                        "minLength": 1
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                            }
+                        ]
                     }
                 },
                 "artifact_type": {
                     "title": "Preferable Android artifact type",
                     "description": "Artifact type (aab/apk) to prioritize when uploading to Firebase App Distribution, by default app bundles are prioritized.",
                     "errorMessage": "Incorrect artifact type. Expected 'apk' or 'aab'",
-                    "allOf": [
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
                         {
                             "$ref": "#/definitions/FirebaseAndroidArtifactType"
                         }
@@ -1144,14 +2106,46 @@
                 "firebase_token": {
                     "title": "Firebase access token",
                     "description": "Firebase access token generated using Firebase CLI; to receive the token use firebase login:ci with Firebase CLI installed.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "firebase_service_account": {
                     "title": "Service account with Firebase distribution permission",
                     "description": "The content of service account file that has \"Firebase App Distribution Admin\" role.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "ios": {
                     "title": "iOS",
@@ -1181,26 +2175,90 @@
                 "store_id": {
                     "title": "Partner Center store ID",
                     "description": "Store ID set up on Microsoft Partner Center.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "tenant_id": {
                     "title": "Partner Center tenant id",
                     "description": "Directory (tenant) ID in Azure AD portal.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "client_id": {
                     "title": "Partner Center client id",
                     "description": "Application (client) ID in Azure AD portal.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 },
                 "client_secret": {
                     "title": "Partner Center client secret",
                     "description": "The value of the Azure AD app key.",
-                    "minLength": 1,
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    ]
                 }
             },
             "additionalProperties": false
@@ -1272,7 +2330,7 @@
                 "scripts": {
                     "title": "Custom post-publishing scripts",
                     "description": "Add scripts to publish to any other service.",
-                    "errorMessage": "Incorrect type. Expected a not empty list of strings (inline script) or dictionaries (scripts with additional fields)",
+                    "errorMessage": "Incorrect type. Expected a non-empty list of strings (inline script) or dictionaries (scripts with additional fields)",
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -1282,9 +2340,20 @@
                                 "minLength": 1
                             },
                             {
-                                "$ref": "#/definitions/NamedScript"
+                                "$ref": "#/definitions/BuildScript"
                             }
                         ]
+                    }
+                },
+                "tester_groups": {
+                    "title": "Tester groups",
+                    "description": "List the tester groups that will receive new versions of the application.",
+                    "errorMessage": "At least one group name is required",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
                     }
                 }
             },
@@ -1301,9 +2370,20 @@
                 },
                 "instance_type": {
                     "title": "Instance type",
-                    "default": "mac_mini_m1",
                     "description": "Build machine type to use for the build.",
-                    "allOf": [
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        },
+                        {
+                            "$ref": "#/definitions/SecureEnvironmentVariable"
+                        },
                         {
                             "$ref": "#/definitions/InstanceType"
                         }
@@ -1312,10 +2392,45 @@
                 "max_build_duration": {
                     "title": "Build timeout settings",
                     "description": "By default, Codemagic builds are set to time out after 60 minutes. You can decrease or increase the maximum build duration. ",
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 120,
-                    "default": 60
+                    "anyOf": [
+                        {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                },
+                "triggering": {
+                    "title": "Automatic build triggering for watched branches",
+                    "description": "Triggering defines the events for automatic build triggering and watched branches. If no events are defined, you can start builds only manually.",
+                    "errorMessage": "Incorrect type. Expected a dictionary",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/Triggering"
+                        }
+                    ]
+                },
+                "inputs": {
+                    "title": "Build inputs",
+                    "description": "Define input properties that are passed to the workflow when starting a build. Build inputs can be specified when starting a build either manually from Codemagic user interface or by sending HTTP request to Codemagic API.",
+                    "errorMessage": "Incorrect type. Expected a dictionary",
+                    "type": "object",
+                    "patternProperties": {
+                        "^[a-zA-Z]\\w*$": {
+                            "$ref": "#/definitions/Input"
+                        }
+                    },
+                    "additionalProperties": {
+                        "$ref": "#/definitions/Input"
+                    }
                 },
                 "environment": {
                     "title": "Build environment",
@@ -1347,16 +2462,6 @@
                         }
                     ]
                 },
-                "triggering": {
-                    "title": "Automatic build triggering for watched branches",
-                    "description": "Triggering defines the events for automatic build triggering and watched branches. If no events are defined, you can start builds only manually.",
-                    "errorMessage": "Incorrect type. Expected a dictionary",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/Triggering"
-                        }
-                    ]
-                },
                 "when": {
                     "title": "Conditions for build to continue",
                     "description": "All conditions below should be met in order for build to continue.",
@@ -1370,7 +2475,38 @@
                 "working_directory": {
                     "title": "Working directory",
                     "description": "Specify the default directory to run script commands. Each script will be executed inside the specified directory, unless the working directory is specified for the script itself.",
-                    "type": "string"
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                        }
+                    ]
+                },
+                "pre_clone_scripts": {
+                    "title": "Custom pre-clone scripts",
+                    "description": "Scripts that are executed before the repository is cloned. Using pre-clone scripts you can set up a VPN connection or perform other preliminary tasks that do not require access to application source code.",
+                    "errorMessage": "Incorrect type. Expected a not empty list of strings (inline script) or dictionaries (scripts with additional fields)",
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            {
+                                "$ref": "#/definitions/PreCloneScript"
+                            }
+                        ]
+                    }
                 },
                 "scripts": {
                     "title": "Build scripts",
@@ -1385,7 +2521,7 @@
                                 "minLength": 1
                             },
                             {
-                                "$ref": "#/definitions/NamedScript"
+                                "$ref": "#/definitions/BuildScript"
                             }
                         ]
                     }
@@ -1431,7 +2567,20 @@
                     "errorMessage": "Incorrect type. Expected a list of nonempty strings",
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "^\\$\\{?([^:{}]+).*\\}?$"
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^\\$\\{\\{\\s*inputs\\.[a-zA-Z]\\w*\\s*\\}\\}"
+                            }
+                        ]
                     }
                 }
             },
